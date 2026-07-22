@@ -1,4 +1,6 @@
-# n8n-nodes-twenty-dynamic
+# n8n-nodes-twenty-crm-next
+
+An actively maintained fork of https://github.com/Logrui/n8n-nodes-twenty-dynamic. Maintained for as long as I use Twenty and n8n, maybe longer.
 
 <p align="center">
   <img src="https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png" alt="n8n-nodes-twenty-dynamic Banner" width="100%">
