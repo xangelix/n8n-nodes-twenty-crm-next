@@ -4,7 +4,7 @@ import { buildComprehensiveFieldSelections } from '../introspection/fieldIntrosp
 /**
  * Build GraphQL mutations for creating multiple records.
  * Executes multiple create operations in parallel for performance.
- * 
+ *
  * @param context The n8n execution context
  * @param objectNameSingular The singular name of the object (e.g., 'company', 'person')
  * @param recordsData Array of field data objects to create
@@ -44,7 +44,7 @@ export async function buildCreateManyMutations(
 /**
  * Execute multiple create operations in parallel.
  * Returns array of created records with success/error status for each.
- * 
+ *
  * @param context The n8n execution context
  * @param resource The resource/object name (singular)
  * @param recordsData Array of field data objects to create
@@ -58,7 +58,7 @@ export async function executeCreateMany(
 	objectMetadata: any,
 ): Promise<Array<{ success: boolean; record?: any; error?: string; index: number }>> {
 	const { twentyApiRequest } = await import('../TwentyApi.client');
-	
+
 	// Build all mutations
 	const mutations = await buildCreateManyMutations(
 		context,

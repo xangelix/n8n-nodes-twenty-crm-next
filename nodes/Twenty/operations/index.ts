@@ -1,6 +1,6 @@
 /**
  * Operations Module
- * 
+ *
  * Each operation is responsible for building its GraphQL query/mutation
  * using introspection to discover all available fields including complex types.
  */

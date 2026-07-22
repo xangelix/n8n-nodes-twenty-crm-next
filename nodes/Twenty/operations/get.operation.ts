@@ -6,7 +6,7 @@ type TwentyApiContext = IExecuteFunctions | ILoadOptionsFunctions;
 /**
  * Build a GraphQL query for retrieving a single record by ID.
  * Uses introspection to discover ALL fields including complex types (Links, Address, etc.)
- * 
+ *
  * @param context The n8n execution context
  * @param objectNameSingular The singular name of the object (e.g., 'company', 'person')
  * @param recordId The UUID of the record to retrieve

@@ -1,6 +1,6 @@
 /**
  * Field Parameter Definitions for Complex Types
- * 
+ *
  * This module exports n8n parameter definitions for complex field types.
  * Each complex type has its own set of parameter definitions that are
  * conditionally displayed based on the selected field name.
@@ -12,7 +12,7 @@ import { INodeProperties } from 'n8n-workflow';
  * FullName field parameters
  * Used for: name (Person only), pointOfContact
  * Note: Company.name is a simple String, Person.name is a FullName object
- * 
+ *
  * IMPORTANT: displayOptions removed because these are children of fixedCollection.
  * n8n does NOT support displayOptions on child parameters of fixedCollection/collection.
  * The field visibility is controlled by the parent fixedCollection's fieldName selection.
@@ -39,7 +39,7 @@ export const fullNameFields: INodeProperties[] = [
 /**
  * Links field parameters
  * Used for: domainName, linkedinLink, xLink, website, cvcWebsite
- * 
+ *
  * IMPORTANT: displayOptions removed because these are children of fixedCollection.
  * The field visibility is controlled by the parent fixedCollection's fieldName selection.
  */
@@ -65,7 +65,7 @@ export const linksFields: INodeProperties[] = [
 /**
  * Currency field parameters
  * Used for: annualRecurringRevenue
- * 
+ *
  * IMPORTANT: displayOptions removed because these are children of fixedCollection.
  * The field visibility is controlled by the parent fixedCollection's fieldName selection.
  */
@@ -100,7 +100,7 @@ export const currencyFields: INodeProperties[] = [
 /**
  * Address field parameters
  * Used for: address
- * 
+ *
  * IMPORTANT: displayOptions removed because these are children of fixedCollection.
  * The field visibility is controlled by the parent fixedCollection's fieldName selection.
  */
@@ -175,7 +175,7 @@ export const addressFields: INodeProperties[] = [
  * Emails field parameters
  * Used for: emails (Person), sentTo (UpcomingEvent)
  * Note: Only primaryEmail implemented. additionalEmails (JSON array) not implemented.
- * 
+ *
  * IMPORTANT: displayOptions removed because these are children of fixedCollection.
  * The field visibility is controlled by the parent fixedCollection's fieldName selection.
  */
@@ -194,7 +194,7 @@ export const emailsFields: INodeProperties[] = [
  * Phones field parameters
  * Used for: phones (when added to Person or other objects)
  * Note: Only primary phone fields implemented. additionalPhones (JSON array) not implemented.
- * 
+ *
  * IMPORTANT: displayOptions removed because these are children of fixedCollection.
  * The field visibility is controlled by the parent fixedCollection's fieldName selection.
  */

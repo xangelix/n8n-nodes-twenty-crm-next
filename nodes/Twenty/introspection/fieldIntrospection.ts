@@ -55,7 +55,7 @@ const COMPLEX_TYPE_SUBFIELDS: Record<string, string> = {
 
 /**
  * Introspect a GraphQL type to discover all its fields.
- * 
+ *
  * @param context The n8n execution context
  * @param typeName The GraphQL type name (e.g., 'Company', 'Person')
  * @returns Array of field information
@@ -88,7 +88,7 @@ export async function introspectType(
 	`;
 
 	const response: any = await twentyApiRequest.call(context, 'graphql', introspectionQuery);
-	
+
 	if (!response.__type?.fields) {
 		return [];
 	}
@@ -100,7 +100,7 @@ export async function introspectType(
 		if (field.name === '__typename') continue;
 
 		const fieldType = field.type;
-		
+
 		// Unwrap NON_NULL and LIST wrappers to get the base type
 		// GraphQL types can be wrapped: NON_NULL(LIST(NON_NULL(FullName))) etc.
 		let currentType = fieldType;
@@ -109,14 +109,14 @@ export async function introspectType(
 			unwrappedType = currentType.ofType;
 			currentType = unwrappedType;
 		}
-		
+
 		// Now get the actual type name and kind from the unwrapped type
 		const typeName = unwrappedType?.name || 'Unknown';
 		const typeKind = unwrappedType?.kind || 'Unknown';
 
 		const isConnection = typeName?.endsWith('Connection') || false;
 		// Only check scalar after unwrapping - check both kind and known scalar type names
-		const isScalar = typeKind === 'SCALAR' || 
+		const isScalar = typeKind === 'SCALAR' ||
 			['ID', 'String', 'Int', 'Float', 'Boolean', 'DateTime', 'Date', 'Time', 'UUID'].includes(typeName);
 		const isEnum = typeKind === 'ENUM';
 		// Check if it's an object type (and not a connection)
@@ -141,7 +141,7 @@ export async function introspectType(
  * Build comprehensive field selections for a Twenty CRM object type.
  * Includes scalar, enum, and complex object fields with proper subfield selections.
  * Excludes connection fields (relations) as they require pagination.
- * 
+ *
  * @param context The n8n execution context
  * @param typeName The GraphQL type name (e.g., 'Company', 'Person')
  * @returns GraphQL field selections string ready to use in queries
@@ -155,10 +155,10 @@ export async function buildComprehensiveFieldSelections(
 	if (fields.length === 0) {
 		// Fallback to basic fields if introspection fails
 		// For Person, use name with subfields; for others, use simple name
-		const nameField = typeName === 'Person' 
+		const nameField = typeName === 'Person'
 			? `name {\n\t\t\t\t\tfirstName\n\t\t\t\t\tlastName\n\t\t\t\t}`
 			: 'name';
-		
+
 		return `id\n\t\t\t\tcreatedAt\n\t\t\t\tupdatedAt\n\t\t\t\tdeletedAt\n\t\t\t\t${nameField}`;
 	}
 
@@ -187,13 +187,13 @@ export async function buildComprehensiveFieldSelections(
 /**
  * Build basic field selections (scalar + enum only) without introspection.
  * This is a fallback when introspection is not available or for simpler queries.
- * 
+ *
  * @param objectMetadata Object metadata from schema
  * @returns GraphQL field selections string
  */
 export function buildBasicFieldSelections(objectMetadata: any): string {
 	const scalarTypes = ['TEXT', 'NUMBER', 'BOOLEAN', 'UUID', 'DATE_TIME', 'DATE', 'TIME', 'PHONE', 'EMAIL', 'SELECT', 'RAW_JSON'];
-	
+
 	// Get fields from schema metadata
 	const metadataFields = objectMetadata.fields
 		.filter((field: any) => {
@@ -202,10 +202,10 @@ export function buildBasicFieldSelections(objectMetadata: any): string {
 			return false;
 		})
 		.map((field: any) => field.name);
-	
+
 	// Add essential fields that should always be requested but might be missing from metadata
 	const essentialFields = ['id', 'createdAt', 'updatedAt', 'deletedAt', 'name', 'position', 'searchVector'];
-	
+
 	// Combine and deduplicate
 	const allFields = [...new Set([...essentialFields, ...metadataFields])];
 	return allFields.join('\n\t\t\t\t');

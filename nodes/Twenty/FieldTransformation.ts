@@ -1,6 +1,6 @@
 /**
  * Field Data Transformation
- * 
+ *
  * Transforms flat field inputs from n8n UI into nested object structures
  * required by Twenty CRM GraphQL API.
  */
@@ -47,7 +47,7 @@ export interface IFieldData {
 /**
  * Transform field data array into GraphQL mutation data
  * Converts flat field inputs into nested object structures
- * 
+ *
  * @param fields Array of field data from n8n parameters
  * @param resource The resource type (person, company, etc.) - used for resource-specific transformations (deprecated, use fieldType instead)
  * @returns Object with properly structured field data for GraphQL
@@ -58,10 +58,10 @@ export function transformFieldsData(fields: IFieldData[], resource?: string): Re
 	for (const field of fields) {
 		// Extract actual field name from pipe-separated value (fieldName|fieldType)
 		// Maintain backward compatibility with plain field names (no pipe)
-		const actualFieldName = field.fieldName.includes('|') 
-			? field.fieldName.split('|')[0] 
+		const actualFieldName = field.fieldName.includes('|')
+			? field.fieldName.split('|')[0]
 			: field.fieldName;
-		
+
 		const fieldType = field.fieldType || 'simple';
 
 		// Transform based on explicitly selected field type

@@ -4,7 +4,7 @@ import { twentyRestApiRequest } from '../TwentyApi.client';
 /**
  * Execute bulk delete operation - delete multiple records by IDs.
  * Uses REST API for efficient deletion.
- * 
+ *
  * @param context The n8n execution context
  * @param resource The resource/object name (singular)
  * @param recordIds Array of record IDs to delete
@@ -23,7 +23,7 @@ export async function executeDeleteMany(
 	const results = await Promise.allSettled(
 		recordIds.map(async (recordId, index) => {
 			const restPath = `/${pluralName}/${recordId}`;
-			
+
 			const response: any = await twentyRestApiRequest.call(
 				context,
 				'DELETE',
@@ -32,7 +32,7 @@ export async function executeDeleteMany(
 
 			// REST API DELETE can return different formats
 			let deletedRecord;
-			
+
 			if (response.data) {
 				// Check if it's nested under resource name
 				deletedRecord = response.data[resource] || response.data[objectMetadata.nameSingular] || response.data;
@@ -40,7 +40,7 @@ export async function executeDeleteMany(
 				// Response might be the record itself
 				deletedRecord = response;
 			}
-			
+
 			// If we got a valid response, consider it successful
 			const resultId = deletedRecord?.id || recordId;
 

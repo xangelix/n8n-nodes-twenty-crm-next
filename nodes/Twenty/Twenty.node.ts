@@ -21,7 +21,7 @@ import {
     getCleanFieldLabel,
 } from './TwentyApi.client';
 import { transformFieldsData, IFieldData } from './FieldTransformation';
-import { 
+import {
     executeUpsert,
     executeCreateMany,
     executeGetMany,
@@ -623,7 +623,7 @@ export class Twenty implements INodeType {
                                 description: 'The value to set for this field',
                                 placeholder: 'Enter value',
                             },
-                            // Full Name fields  
+                            // Full Name fields
                             {
                                 displayName: 'First Name',
                                 name: 'firstName',
@@ -1012,7 +1012,7 @@ export class Twenty implements INodeType {
 
                     // Filter objects based on database group
                     let filteredObjects = schema.objects;
-                    
+
                     switch (resourceGroup) {
                         case 'all':
                             // Show all databases
@@ -1021,21 +1021,21 @@ export class Twenty implements INodeType {
                         case 'standard':
                             // Standard databases: main user-facing Twenty objects
                             // Explicitly: not custom, not system, and active
-                            filteredObjects = schema.objects.filter(obj => 
+                            filteredObjects = schema.objects.filter(obj =>
                                 obj.isCustom === false && obj.isSystem === false && obj.isActive === true
                             );
                             break;
                         case 'system':
                             // System databases: internal meta-objects
                             // Explicitly: system objects, not custom
-                            filteredObjects = schema.objects.filter(obj => 
+                            filteredObjects = schema.objects.filter(obj =>
                                 obj.isSystem === true && obj.isCustom === false
                             );
                             break;
                         case 'custom':
                             // Custom databases: user-created objects
                             // Explicitly: custom objects only
-                            filteredObjects = schema.objects.filter(obj => 
+                            filteredObjects = schema.objects.filter(obj =>
                                 obj.isCustom === true
                             );
                             break;
@@ -1177,7 +1177,7 @@ export class Twenty implements INodeType {
                     // Transform to dropdown options with pipe-separated values (fieldName|fieldType)
                     const options: INodePropertyOptions[] = filteredFields.map((field) => {
                         // Determine n8n field type
-                        const n8nType = field.source === 'metadata' 
+                        const n8nType = field.source === 'metadata'
                             ? mapTwentyTypeToN8nType(field.type)
                             : mapGraphQLTypeToN8nType(field.type);
 
@@ -1192,11 +1192,11 @@ export class Twenty implements INodeType {
                     options.sort((a, b) => {
                         const aValue = String(a.value);
                         const bValue = String(b.value);
-                        
+
                         // 'name' always comes first
                         if (aValue.startsWith('name|')) return -1;
                         if (bValue.startsWith('name|')) return 1;
-                        
+
                         const aIsStandard = ['id', 'createdAt', 'updatedAt', 'deletedAt'].some(
                             (f) => aValue.includes(f)
                         );
@@ -1306,7 +1306,7 @@ export class Twenty implements INodeType {
                         // If that fails, the field hasn't been selected yet
                         return [];
                     }
-                    
+
                     if (!fieldNameWithType) {
                         return [];
                     }
@@ -1316,7 +1316,7 @@ export class Twenty implements INodeType {
                     if (parts.length !== 2) {
                         throw new NodeOperationError(this.getNode(), `Invalid field format: ${fieldNameWithType}`);
                     }
-                    
+
                     const [fieldName, fieldType] = parts;
 
                     // Validate it's a SELECT/MULTI_SELECT type
@@ -1328,10 +1328,10 @@ export class Twenty implements INodeType {
                     // Use cache for editor UI performance
                     const schema = await getCachedSchema.call(this, false);
                     const objectMeta = schema.objects.find((obj) => obj.nameSingular === resource);
-                    
+
                     if (objectMeta?.fields) {
                         const metadataField = objectMeta.fields.find((f: IFieldMetadata) => f.name === fieldName);
-                        
+
                         if (metadataField?.options && metadataField.options.length > 0) {
                             // Found in metadata - return rich options with colors
                             const sortedOptions = [...metadataField.options].sort((a, b) => a.position - b.position);
@@ -1346,14 +1346,14 @@ export class Twenty implements INodeType {
                     // STRATEGY 2: Fall back to GraphQL introspection (built-in enum fields)
                     const typeName = resource.charAt(0).toUpperCase() + resource.slice(1);
                     const graphqlSchema = await queryGraphQLType.call(this, typeName);
-                    
+
                     if (graphqlSchema.__type?.fields) {
                         const graphqlField = graphqlSchema.__type.fields.find((f: any) => f.name === fieldName);
-                        
+
                         if (graphqlField) {
                             // Check if it's an enum type
                             let enumTypeName = null;
-                            
+
                             if (graphqlField.type.kind === 'ENUM') {
                                 // Single SELECT enum
                                 enumTypeName = graphqlField.type.name;
@@ -1361,7 +1361,7 @@ export class Twenty implements INodeType {
                                 // MULTI_SELECT enum (LIST of ENUM)
                                 enumTypeName = graphqlField.type.ofType.name;
                             }
-                            
+
                             if (enumTypeName) {
                                 // Query enum values
                                 const enumValues = await queryEnumValues.call(this, enumTypeName);
@@ -1407,7 +1407,7 @@ export class Twenty implements INodeType {
                     if (!resource) {
                         return { results: [] };
                     }
-                    
+
                     // Get schema to find the object metadata
                     // Always fetch fresh schema on execution for accuracy
                     const schema: ISchemaMetadata = await getCachedSchema.call(this, true);
@@ -1421,25 +1421,25 @@ export class Twenty implements INodeType {
                     // The schema metadata from /metadata endpoint is often incomplete
                     // Special handling for Person: name is a FullName complex type (firstName, lastName)
                     const isPerson = resource === 'person';
-                    const nameFieldQuery = isPerson 
+                    const nameFieldQuery = isPerson
                         ? `name {
                             firstName
                             lastName
                         }`
                         : 'name';
-                    
+
                     const fieldsToQuery = ['id', nameFieldQuery]; // Always include id and name at minimum
 
                     // Build GraphQL query to list records (limit to 100 for dropdown performance)
                     // Use plural name (e.g., 'companies') with first argument, not paging
                     const pluralName = objectMetadata.namePlural;
-                    
+
                     // Build filter clause if user has typed a search term
                     // Use ilike for case-insensitive partial matching
                     // For Person database, search in both firstName and lastName
                     const hasFilter = filter && filter.trim() !== '';
                     let filterClause = '';
-                    
+
                     if (hasFilter) {
                         if (isPerson) {
                             // Search in firstName OR lastName for Person database
@@ -1449,7 +1449,7 @@ export class Twenty implements INodeType {
                             filterClause = ', filter: { name: { ilike: $searchPattern } }';
                         }
                     }
-                    
+
                     const query = `
                         query List${objectMetadata.labelPlural.replace(/\s+/g, '')}($limit: Int!${hasFilter ? ', $searchPattern: String!' : ''}) {
                             ${pluralName}(first: $limit${filterClause}) {
@@ -1465,7 +1465,7 @@ export class Twenty implements INodeType {
                     const variables: any = {
                         limit: 100,
                     };
-                    
+
                     // Add search pattern with wildcards for partial matching
                     if (hasFilter) {
                         variables.searchPattern = `%${filter}%`;
@@ -1475,7 +1475,7 @@ export class Twenty implements INodeType {
 
                     // Extract records from GraphQL edges/node structure
                     const edges = response[pluralName]?.edges || [];
-                    
+
                     if (edges.length === 0) {
                         return {
                             results: [
@@ -1498,7 +1498,7 @@ export class Twenty implements INodeType {
                     // Transform to list search results
                     const results = edges.map((edge: any) => {
                         const record = edge.node;
-                        
+
                         // Handle different name field types
                         let displayValue: string;
                         if (isPerson && record.name && typeof record.name === 'object') {
@@ -1510,7 +1510,7 @@ export class Twenty implements INodeType {
                             // For other databases: name is a simple string
                             displayValue = record.name || record.id;
                         }
-                        
+
                         return {
                             name: displayValue,
                             value: record.id,
@@ -1609,9 +1609,9 @@ export class Twenty implements INodeType {
                 } else if (operation === 'get') {
                     // Get recordId from resourceLocator parameter
                     const recordIdParam = this.getNodeParameter('recordId', i) as string | { mode: string; value: string };
-                    
+
                     let recordId: string;
-                    
+
                     // Handle both old string format (backward compatibility) and new resourceLocator format
                     if (typeof recordIdParam === 'string') {
                         recordId = recordIdParam;
@@ -1642,7 +1642,7 @@ export class Twenty implements INodeType {
                     // GraphQL still used for database/field selection, but REST for actual data retrieval
                     const pluralName = objectMetadata.namePlural;
                     const restPath = `/${pluralName}/${recordId}`;
-                    
+
                     try {
                         const response: any = await twentyRestApiRequest.call(
                             this,
@@ -1652,7 +1652,7 @@ export class Twenty implements INodeType {
 
                         // REST API returns data in format: { data: { [resourceSingular]: { ...fields } } }
                         const record = response.data?.[resource];
-                        
+
                         if (!record) {
                             throw new NodeOperationError(this.getNode(), `Record with ID "${recordId}" not found`);
                         }
@@ -1690,9 +1690,9 @@ export class Twenty implements INodeType {
                 } else if (operation === 'update') {
                     // Get recordId from resourceLocator parameter (same pattern as Get and Delete operations)
                     const recordIdParam = this.getNodeParameter('recordIdUpdate', i) as string | { mode: string; value: string };
-                    
+
                     let recordId: string;
-                    
+
                     // Handle both old string format (backward compatibility) and new resourceLocator format
                     if (typeof recordIdParam === 'string') {
                         recordId = recordIdParam;
@@ -1784,7 +1784,7 @@ export class Twenty implements INodeType {
                 } else if (operation === 'upsert') {
                     // Get upsert mode (match by ID or by unique field)
                     const upsertMode = this.getNodeParameter('upsertMode', i, 'field') as string;
-                    
+
                     const fieldsParam = this.getNodeParameter('fields', i, {}) as {
                         field?: IFieldData[];
                     };
@@ -1794,7 +1794,7 @@ export class Twenty implements INodeType {
 
                     // Prepare options based on upsert mode
                     const options: any = {};
-                    
+
                     if (upsertMode === 'id') {
                         options.recordIdParam = this.getNodeParameter('recordIdUpsert', i);
                     } else {
@@ -1856,7 +1856,7 @@ export class Twenty implements INodeType {
                     // Add all results to return data
                     results.forEach((result) => {
                         returnData.push({
-                            json: result.success 
+                            json: result.success
                                 ? { ...result.record, __upsertAction: result.action }
                                 : { error: result.error, index: result.index },
                             pairedItem: { item: i },
@@ -1865,9 +1865,9 @@ export class Twenty implements INodeType {
                 } else if (operation === 'delete') {
                     // Get recordId from resourceLocator parameter (same pattern as Get operation)
                     const recordIdParam = this.getNodeParameter('recordIdDelete', i) as string | { mode: string; value: string };
-                    
+
                     let recordId: string;
-                    
+
                     // Handle both old string format (backward compatibility) and new resourceLocator format
                     if (typeof recordIdParam === 'string') {
                         recordId = recordIdParam;
@@ -1897,7 +1897,7 @@ export class Twenty implements INodeType {
                     // Use REST API for Delete operation - simple, semantic HTTP verb
                     const pluralName = objectMetadata.namePlural;
                     const restPath = `/${pluralName}/${recordId}`;
-                    
+
                     try {
                         const response: any = await twentyRestApiRequest.call(
                             this,
@@ -1910,7 +1910,7 @@ export class Twenty implements INodeType {
                         // - { data: { id: "..." } }
                         // - Just the deleted object itself
                         let deletedRecord;
-                        
+
                         if (response.data) {
                             // Check if it's nested under resource name
                             deletedRecord = response.data[resource] || response.data[objectMetadata.nameSingular] || response.data;
@@ -1918,7 +1918,7 @@ export class Twenty implements INodeType {
                             // Response might be the record itself
                             deletedRecord = response;
                         }
-                        
+
                         // If we got a valid response, consider it successful
                         // DELETE operations often return the deleted record or just { id: "..." }
                         const resultId = deletedRecord?.id || recordId;
@@ -1952,7 +1952,7 @@ export class Twenty implements INodeType {
                     // Add all results to return data
                     results.forEach((result) => {
                         returnData.push({
-                            json: result.success 
+                            json: result.success
                                 ? { success: true, id: result.id }
                                 : { error: result.error, id: result.id, index: result.index },
                             pairedItem: { item: i },
@@ -1985,7 +1985,7 @@ export class Twenty implements INodeType {
                     }
 
                     const restPath = `/${pluralName}${queryParts.length > 0 ? '?' + queryParts.join('&') : ''}`;
-                    
+
                     try {
                         const response: any = await twentyRestApiRequest.call(
                             this,
@@ -1995,7 +1995,7 @@ export class Twenty implements INodeType {
 
                         // REST API returns data in format: { data: { [resourcePlural]: [...records] } }
                         const records = response.data?.[pluralName];
-                        
+
                         if (!records) {
                             // No records found - return empty array
                             continue;

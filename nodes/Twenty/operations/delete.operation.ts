@@ -4,7 +4,7 @@ type TwentyApiContext = IExecuteFunctions | ILoadOptionsFunctions;
 
 /**
  * Build a GraphQL mutation to delete a record.
- * 
+ *
  * @param context The n8n execution context
  * @param objectNameSingular The singular name of the object (e.g., 'company', 'person')
  * @param recordId The UUID of the record to delete

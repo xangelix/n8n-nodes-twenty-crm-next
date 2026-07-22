@@ -467,11 +467,11 @@ function humanize(str: string): string {
  * - "The company name" (when field is "name")
  * - "Address of the company" (when field is "address")
  * - "Attachments linked to the company" (when field is "attachments")
- * 
+ *
  * Strategy: Use humanized field name for consistency and clarity.
  * Only use the API label if it's concise and matches expected patterns.
- * 
- * Examples: 
+ *
+ * Examples:
  * - fieldName: "name" → "Name"
  * - fieldName: "domainName" → "Domain Name"
  * - fieldName: "idealCustomerProfile" → "Ideal Customer Profile"
@@ -687,7 +687,7 @@ export async function getDataSchemaForObject(
 /**
  * Query GraphQL type schema for a resource using introspection.
  * Used to discover built-in enum fields that are NOT in the metadata API.
- * 
+ *
  * @param {TwentyApiContext} this The context object for the n8n function.
  * @param {string} typeName The GraphQL type name (e.g., 'Company', 'Person')
  * @returns {Promise<any>} The GraphQL type schema with fields and types
@@ -722,7 +722,7 @@ export async function queryGraphQLType(
 /**
  * Query enum values for a GraphQL enum type.
  * Used to get options for SELECT/MULTI_SELECT fields that are built-in enums.
- * 
+ *
  * @param {TwentyApiContext} this The context object for the n8n function.
  * @param {string} enumName The enum type name (e.g., 'CompanyCategoryEnum')
  * @returns {Promise<Array<{name: string, label: string}>>} Array of enum values with formatted labels
@@ -759,7 +759,7 @@ export async function queryEnumValues(
  * Build comprehensive field selections for a Twenty CRM object type using introspection.
  * This discovers ALL fields including complex types (Links, Address, Currency, etc.) and builds
  * proper GraphQL field selections with subfield queries.
- * 
+ *
  * @param {string} objectTypeName The GraphQL type name (e.g., 'Company', 'Person')
  * @returns {Promise<string>} GraphQL field selections string
  */
@@ -855,7 +855,7 @@ export async function buildComprehensiveFieldSelections(
 /**
  * Build a GraphQL mutation for creating a record.
  * Only requests simple scalar fields in the response to avoid complex object subfield requirements.
- * 
+ *
  * @param {string} objectNameSingular The singular name of the object (e.g., 'company', 'person')
  * @param {Record<string, any>} fieldsData The field values to create
  * @param {IObjectMetadata} objectMetadata The object metadata from schema
@@ -916,7 +916,7 @@ export function buildCreateMutation(
 /**
  * Build a GraphQL query for retrieving a single record by ID.
  * Only requests simple scalar fields to avoid complex object subfield requirements.
- * 
+ *
  * @param {string} objectNameSingular The singular name of the object (e.g., 'company', 'person')
  * @param {string} recordId The UUID of the record to retrieve
  * @param {IObjectMetadata} objectMetadata The object metadata from schema
@@ -1131,7 +1131,7 @@ export function buildListQuery(
 /**
  * Re-export new operation builders from the operations module.
  * These use GraphQL introspection to discover ALL fields including complex types.
- * 
+ *
  * MIGRATION NOTE: The new operation builders are async and return comprehensive data.
  * Import from './operations' for the new implementations.
  */

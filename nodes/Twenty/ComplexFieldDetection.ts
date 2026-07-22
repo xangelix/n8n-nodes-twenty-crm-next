@@ -1,6 +1,6 @@
 /**
  * Field Type Detection and Templates
- * 
+ *
  * Identifies complex field types and provides metadata for generating
  * sub-field inputs in the n8n UI.
  */

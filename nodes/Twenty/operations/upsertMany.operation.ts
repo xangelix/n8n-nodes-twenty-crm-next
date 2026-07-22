@@ -7,7 +7,7 @@ import { findRecordByField } from './upsert.operation';
 /**
  * Execute bulk upsert operation - update if exists, create if not.
  * Supports matching by unique field for each record.
- * 
+ *
  * @param context The n8n execution context
  * @param resource The resource/object name (singular)
  * @param upsertMode How to match records ('id' or 'field')
@@ -29,7 +29,7 @@ export async function executeUpsertMany(
 	},
 ): Promise<Array<{ success: boolean; record?: any; action?: 'created' | 'updated'; error?: string; index: number }>> {
 	const { twentyApiRequest } = await import('../TwentyApi.client');
-	
+
 	// Process each upsert in parallel
 	const results = await Promise.allSettled(
 		upsertData.map(async ({ matchValue, fieldsData }, index) => {
@@ -43,7 +43,7 @@ export async function executeUpsertMany(
 				// Check if the record exists using REST API
 				const pluralName = objectMetadata.namePlural;
 				const restPath = `/${pluralName}/${recordId}`;
-				
+
 				try {
 					const checkResponse: any = await twentyRestApiRequest.call(
 						context,

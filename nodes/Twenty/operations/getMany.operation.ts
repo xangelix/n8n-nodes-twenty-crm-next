@@ -4,7 +4,7 @@ import { twentyRestApiRequest } from '../TwentyApi.client';
 /**
  * Execute bulk get operation - retrieve multiple records by IDs.
  * Uses REST API for efficient data retrieval.
- * 
+ *
  * @param context The n8n execution context
  * @param resource The resource/object name (singular)
  * @param recordIds Array of record IDs to retrieve
@@ -23,7 +23,7 @@ export async function executeGetMany(
 	const results = await Promise.allSettled(
 		recordIds.map(async (recordId, index) => {
 			const restPath = `/${pluralName}/${recordId}`;
-			
+
 			const response: any = await twentyRestApiRequest.call(
 				context,
 				'GET',
@@ -32,7 +32,7 @@ export async function executeGetMany(
 
 			// REST API returns data in format: { data: { [resourceSingular]: { ...fields } } }
 			const record = response.data?.[resource];
-			
+
 			if (!record) {
 				throw new Error(`Record with ID "${recordId}" not found`);
 			}

@@ -4,7 +4,7 @@ import { buildComprehensiveFieldSelections } from '../introspection/fieldIntrosp
 /**
  * Build GraphQL mutations for updating multiple records.
  * Supports partial updates - only provided fields are updated.
- * 
+ *
  * @param context The n8n execution context
  * @param objectNameSingular The singular name of the object (e.g., 'company', 'person')
  * @param updates Array of {id, fieldsData} objects
@@ -45,7 +45,7 @@ export async function buildUpdateManyMutations(
 /**
  * Execute multiple update operations in parallel.
  * Returns array of updated records with success/error status for each.
- * 
+ *
  * @param context The n8n execution context
  * @param resource The resource/object name (singular)
  * @param updates Array of {id, fieldsData} objects
@@ -59,7 +59,7 @@ export async function executeUpdateMany(
 	objectMetadata: any,
 ): Promise<Array<{ success: boolean; record?: any; error?: string; id: string; index: number }>> {
 	const { twentyApiRequest } = await import('../TwentyApi.client');
-	
+
 	// Build all mutations
 	const mutations = await buildUpdateManyMutations(
 		context,

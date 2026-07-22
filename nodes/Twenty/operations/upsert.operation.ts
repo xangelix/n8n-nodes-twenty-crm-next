@@ -8,7 +8,7 @@ import { buildUpdateMutation } from './update.operation';
  * Supports two matching modes:
  * 1. Match by Record ID (UUID)
  * 2. Match by Unique Field (e.g., email for people)
- * 
+ *
  * @param context The n8n execution context
  * @param upsertMode How to match records ('id' or 'field')
  * @param resource The resource/object name (singular)
@@ -39,7 +39,7 @@ export async function executeUpsert(
 		// Check if the record exists using REST API
 		const pluralName = objectMetadata.namePlural;
 		const restPath = `/${pluralName}/${recordId}`;
-		
+
 		try {
 			const checkResponse: any = await twentyRestApiRequest.call(
 				context,

@@ -480,9 +480,9 @@ export class Twenty implements INodeType {
 						try {
 							const viewData = await twentyApiRequest.call(this, 'graphql', viewQuery, { id: viewId }) as { getCoreView: { viewFilterGroups: any[] } };
 							const filterGroups = viewData.getCoreView.viewFilterGroups;
-							
+
 							const topLevelOperator = filterGroups[0]?.logicalOperator || 'AND';
-							const conditions = filterGroups.flatMap(group => 
+							const conditions = filterGroups.flatMap(group =>
 								group.viewFilters.map((filter: any) => ({
 									[filter.fieldApiName]: { [filter.operator]: filter.value }
 								}))
@@ -494,7 +494,7 @@ export class Twenty implements INodeType {
 						} catch (error) {
 							this.logger.warn(`Could not fetch or process view '${viewId}'. Falling back to manual filters. Error: ${error.message}`);
 						}
-					} 
+					}
 
 					if (Object.keys(where).length === 0) {
 						// If no view is selected or view processing fails, use manual filters

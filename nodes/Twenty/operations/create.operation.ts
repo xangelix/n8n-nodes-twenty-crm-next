@@ -6,7 +6,7 @@ type TwentyApiContext = IExecuteFunctions | ILoadOptionsFunctions;
 /**
  * Build a GraphQL mutation for creating a record.
  * Uses introspection to discover ALL fields including complex types for the response.
- * 
+ *
  * @param context The n8n execution context
  * @param objectNameSingular The singular name of the object (e.g., 'company', 'person')
  * @param fieldsData The field values to create
