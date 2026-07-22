@@ -2,6 +2,7 @@ import { IExecuteFunctions, NodeOperationError } from 'n8n-workflow';
 import { twentyRestApiRequest } from '../TwentyApi.client';
 import { buildCreateMutation } from './create.operation';
 import { buildUpdateMutation } from './update.operation';
+import { findRecordByField } from './upsert.operation';
 
 /**
  * Execute bulk upsert operation - update if exists, create if not.
@@ -137,46 +138,4 @@ export async function executeUpsertMany(
 			};
 		}
 	});
-}
-
-/**
- * Find a record by searching for a unique field value.
- * Returns the record if found, undefined otherwise.
- */
-async function findRecordByField(
-	context: IExecuteFunctions,
-	resource: string,
-	pluralName: string,
-	matchField: string,
-	matchValue: string,
-): Promise<{ id: string } | undefined> {
-	const restPath = `/${pluralName}`;
-	
-	try {
-		const searchResponse: any = await twentyRestApiRequest.call(
-			context,
-			'GET',
-			restPath,
-		);
-
-		const records = searchResponse.data?.[pluralName];
-		
-		if (records && Array.isArray(records)) {
-			const matchedRecord = records.find((record: any) => {
-				const fieldValue = record[matchField];
-				if (typeof fieldValue === 'object' && fieldValue !== null) {
-					return JSON.stringify(fieldValue) === JSON.stringify(matchValue);
-				}
-				return fieldValue === matchValue;
-			});
-
-			if (matchedRecord && matchedRecord.id) {
-				return { id: matchedRecord.id };
-			}
-		}
-	} catch (error) {
-		return undefined;
-	}
-
-	return undefined;
 }
