@@ -219,56 +219,90 @@ export async function twentyRestApiRequest<T>(
 }
 
 /**
- * Fetches the complete schema metadata from Twenty CRM.
- * Queries the /metadata endpoint to get all objects and their fields.
- *
- * @param {TwentyApiContext} this The context object for the n8n function.
- * @returns {Promise<IObjectMetadata[]>} Array of object metadata.
+ * GraphQL query for Twenty >= 2.12, where `isCustom` was removed from the
+ * metadata Object type. Custom objects are now identified by their
+ * `applicationId` matching the workspace's custom application.
  */
-export async function getSchemaMetadata(
-	this: TwentyApiContext,
-): Promise<IObjectMetadata[]> {
-	const query = `
-		query GetObjects {
-			objects(paging: { first: 200 }) {
-				edges {
-					node {
-						id
-						nameSingular
-						namePlural
-						labelSingular
-						labelPlural
-						isCustom
-						isSystem
-						isActive
-						isRemote
-						isUIReadOnly
-						isSearchable
-						fields(paging: { first: 200 }, filter: {}) {
-							edges {
-								node {
-									id
-									name
-									label
-									type
-									isNullable
-									isUIReadOnly
-									isActive
-									isSystem
-									options
-								}
+const MODERN_OBJECTS_QUERY = `
+	query GetObjects {
+		objects(paging: { first: 200 }) {
+			edges {
+				node {
+					id
+					nameSingular
+					namePlural
+					labelSingular
+					labelPlural
+					applicationId
+					isSystem
+					isActive
+					isRemote
+					isUIReadOnly
+					isSearchable
+					fields(paging: { first: 200 }, filter: {}) {
+						edges {
+							node {
+								id
+								name
+								label
+								type
+								isNullable
+								isUIReadOnly
+								isActive
+								isSystem
+								options
 							}
 						}
 					}
 				}
 			}
 		}
+	}
+`;
+
+/**
+ * Legacy GraphQL query for Twenty < 2.12, which still exposes `isCustom`
+ * on the metadata Object type.
+ */
+const LEGACY_OBJECTS_QUERY = MODERN_OBJECTS_QUERY.replace('applicationId', 'isCustom');
+
+/**
+ * Fetches the ID of the workspace's custom application from the core GraphQL API.
+ * Custom objects created via the UI belong to this application (Twenty >= 2.12).
+ *
+ * @param {TwentyApiContext} this The context object for the n8n function.
+ * @returns {Promise<string | null>} The custom application ID, or null if unavailable.
+ */
+async function getWorkspaceCustomApplicationId(
+	this: TwentyApiContext,
+): Promise<string | null> {
+	const query = `
+		query GetWorkspaceCustomApplication {
+			currentWorkspace {
+				workspaceCustomApplication {
+					id
+				}
+			}
+		}
 	`;
 
-	const response: any = await twentyApiRequest.call(this, 'metadata', query);
+	const response: any = await twentyApiRequest.call(this, 'graphql', query);
 
-	// Parse the GraphQL edges/node structure
-	const objects = response.objects.edges.map((edge: any) => {
+	return response?.currentWorkspace?.workspaceCustomApplication?.id ?? null;
+}
+
+/**
+ * Parses the GraphQL edges/node structure of an objects metadata response.
+ *
+ * @param {any} response The raw GraphQL response data.
+ * @param {(node: any) => boolean} resolveIsCustom Resolves whether an object is custom.
+ * @returns {IObjectMetadata[]} Array of object metadata.
+ */
+function parseObjectsResponse(
+	response: any,
+	resolveIsCustom: (node: any) => boolean,
+): IObjectMetadata[] {
+	return response.objects.edges.map((edge: any) => {
 		const node = edge.node;
 		return {
 			id: node.id,
@@ -276,7 +310,7 @@ export async function getSchemaMetadata(
 			namePlural: node.namePlural,
 			labelSingular: node.labelSingular,
 			labelPlural: node.labelPlural,
-			isCustom: node.isCustom,
+			isCustom: resolveIsCustom(node),
 			isSystem: node.isSystem,
 			isActive: node.isActive,
 			isRemote: node.isRemote,
@@ -302,8 +336,45 @@ export async function getSchemaMetadata(
 			})),
 		};
 	});
+}
 
-	return objects;
+/**
+ * Fetches the complete schema metadata from Twenty CRM.
+ * Queries the /metadata endpoint to get all objects and their fields.
+ *
+ * Twenty >= 2.12 removed `isCustom` from the metadata schema, so custom
+ * objects are detected by comparing each object's `applicationId` against
+ * the workspace's custom application ID. Older servers fall back to the
+ * legacy `isCustom` field automatically.
+ *
+ * @param {TwentyApiContext} this The context object for the n8n function.
+ * @returns {Promise<IObjectMetadata[]>} Array of object metadata.
+ */
+export async function getSchemaMetadata(
+	this: TwentyApiContext,
+): Promise<IObjectMetadata[]> {
+	try {
+		const workspaceCustomApplicationId = await getWorkspaceCustomApplicationId.call(this);
+		const response: any = await twentyApiRequest.call(this, 'metadata', MODERN_OBJECTS_QUERY);
+
+		return parseObjectsResponse(
+			response,
+			(node) =>
+				workspaceCustomApplicationId !== null &&
+				node.applicationId === workspaceCustomApplicationId,
+		);
+	} catch (error) {
+		// Twenty < 2.12 does not expose `applicationId` on the metadata Object
+		// type nor `workspaceCustomApplication` on Workspace. Fall back to the
+		// legacy `isCustom` field.
+		if (error instanceof Error && error.message.includes('Cannot query field')) {
+			const response: any = await twentyApiRequest.call(this, 'metadata', LEGACY_OBJECTS_QUERY);
+
+			return parseObjectsResponse(response, (node) => node.isCustom === true);
+		}
+
+		throw error;
+	}
 }
 
 /**
