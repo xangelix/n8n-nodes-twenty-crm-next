@@ -1487,6 +1487,14 @@ export class Twenty implements INodeType {
                         };
                     }
 
+                    // Build the record URL from the configured Twenty domain
+                    // (works for self-hosted instances, not just app.twenty.com)
+                    const credentials = await this.getCredentials('twentyApi');
+                    const baseUrl = (credentials.domain as string)
+                        .replace(/\/graphql\/?$/, '')
+                        .replace(/\/metadata\/?$/, '')
+                        .replace(/\/$/, '');
+
                     // Transform to list search results
                     const results = edges.map((edge: any) => {
                         const record = edge.node;
@@ -1506,7 +1514,7 @@ export class Twenty implements INodeType {
                         return {
                             name: displayValue,
                             value: record.id,
-                            url: `https://app.twenty.com/objects/${objectMetadata.namePlural}/${record.id}`,
+                            url: `${baseUrl}/objects/${objectMetadata.namePlural}/${record.id}`,
                         };
                     });
 
