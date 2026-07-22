@@ -1,20 +1,20 @@
 # n8n-nodes-twenty-crm-next
 
-An actively maintained fork of https://github.com/Logrui/n8n-nodes-twenty-dynamic. Maintained for as long as I use Twenty and n8n, maybe longer.
+An actively maintained fork of [Logrui/n8n-nodes-twenty-dynamic](https://github.com/Logrui/n8n-nodes-twenty-dynamic). Maintained for as long as I use Twenty and n8n, maybe longer.
 
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png" alt="n8n-nodes-twenty-dynamic Banner" width="100%">
+  <img src="https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png" alt="n8n-nodes-twenty-crm-next Banner" width="100%">
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/n8n-nodes-twenty-dynamic">
-    <img src="https://img.shields.io/npm/v/n8n-nodes-twenty-dynamic.svg?style=flat-square" alt="npm version">
+  <a href="https://www.npmjs.com/package/n8n-nodes-twenty-crm-next">
+    <img src="https://img.shields.io/npm/v/n8n-nodes-twenty-crm-next.svg?style=flat-square" alt="npm version">
   </a>
-  <a href="https://www.npmjs.com/package/n8n-nodes-twenty-dynamic">
-    <img src="https://img.shields.io/npm/dm/n8n-nodes-twenty-dynamic.svg?style=flat-square" alt="npm downloads">
+  <a href="https://www.npmjs.com/package/n8n-nodes-twenty-crm-next">
+    <img src="https://img.shields.io/npm/dm/n8n-nodes-twenty-crm-next.svg?style=flat-square" alt="npm downloads">
   </a>
-  <a href="https://github.com/Logrui/n8n-nodes-twenty-dynamic/blob/master/LICENSE">
-    <img src="https://img.shields.io/npm/l/n8n-nodes-twenty-dynamic.svg?style=flat-square" alt="license">
+  <a href="https://github.com/xangelix/n8n-nodes-twenty-crm-next/blob/main/LICENSE.md">
+    <img src="https://img.shields.io/npm/l/n8n-nodes-twenty-crm-next.svg?style=flat-square" alt="license">
   </a>
 </p>
 
@@ -28,7 +28,7 @@ Unlike older Twenty CRM nodes, this node **dynamically adapts** to your Twenty i
 
 ## Overview
 
-| Feature | Older Nodes / Forks | **n8n-nodes-twenty-dynamic** |
+| Feature | Older Nodes / Forks | **n8n-nodes-twenty-crm-next** |
 | :--- | :--- | :--- |
 | **Custom Objects** | ❌ Requires manual JSON inputs or HTTP Request Nodes | ✅ **Auto-discovered instantly** |
 | **Custom Fields** | ❌ Often missing or raw JSON | ✅ **Native n8n inputs** for all types |
@@ -59,7 +59,7 @@ Unlike older Twenty CRM nodes, this node **dynamically adapts** to your Twenty i
 
 1. Go to **Settings** → **Community Nodes**
 2. Select **Install**
-3. Enter package name: `n8n-nodes-twenty-dynamic`
+3. Enter package name: `n8n-nodes-twenty-crm-next`
 
 ### Requirements (In GEneral Works for Most N8N and Twenty CRM Self Hosted Instances)
 - **Twenty CRM**: v1.4.0 or later - Supports Twenty CRM v1.11.0 (Newest Version as of 2025-12-15)
@@ -114,12 +114,12 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 
 **Quick Install in n8n:**
 ```
-Settings → Community Nodes → Install → n8n-nodes-twenty-dynamic
+Settings → Community Nodes → Install → n8n-nodes-twenty-crm-next
 ```
 
 **Or via npm:**
 ```bash
-npm install n8n-nodes-twenty-dynamic
+npm install n8n-nodes-twenty-crm-next
 ```
 
 ---
@@ -211,13 +211,13 @@ The node automatically provides appropriate inputs based on field types:
 - ✅ Most custom field types supported
 - ⚠️ Some complex object-based custom fields are work-in-progress - please report bugs on GitHub
 
-**Note:** The majority of custom fields are fully supported. If you encounter issues with specific custom field types, please [report them on GitHub](https://github.com/Logrui/n8n-nodes-twenty-dynamic/issues).
+**Note:** The majority of custom fields are fully supported. If you encounter issues with specific custom field types, please [report them on GitHub](https://github.com/xangelix/n8n-nodes-twenty-crm-next/issues).
 
 ---
 
 ## Bug Reporting and Feature Requests
 
-Please report bugs and request features on [GitHub Issues](https://github.com/Logrui/n8n-nodes-twenty-dynamic/issues).
+Please report bugs and request features on [GitHub Issues](https://github.com/xangelix/n8n-nodes-twenty-crm-next/issues).
 
 **When reporting bugs, please include:**
 - Your Twenty CRM version
@@ -259,8 +259,8 @@ Please report bugs and request features on [GitHub Issues](https://github.com/Lo
 - 🔧 [Twenty Developer Documentation](https://twenty.com/developers/)
 - 🔗 [Twenty GraphQL API Documentation](https://twenty.com/developers/section/graphql)
 - 📝 [Changelog](CHANGELOG.md) - Version history and release notes
-- 💻 [GitHub Repository](https://github.com/Logrui/n8n-nodes-twenty-dynamic) - Source code and issues
-- 📦 [npm Package](https://www.npmjs.com/package/n8n-nodes-twenty-dynamic) - Package details
+- 💻 [GitHub Repository](https://github.com/xangelix/n8n-nodes-twenty-crm-next) - Source code and issues
+- 📦 [npm Package](https://www.npmjs.com/package/n8n-nodes-twenty-crm-next) - Package details
 
 ---
 
@@ -272,10 +272,13 @@ Compatible and tested with the newest Twenty v1.11.0 and n8n Version 2.0 Beta (L
 
 ## Credits
 
+**Fork Maintainer:**
+- [xangelix](https://github.com/xangelix) (Cody Wyatt Neiman) - maintainer of `n8n-nodes-twenty-crm-next`
+
 **Primary Development:**
 - [s-yhc](https://github.com/s-yhc) - Dynamic node architecture and custom objects integration
 
-**Maintainer:**
+**Original Maintainer:**
 - [Logrui](https://github.com/Logrui)
 
 **Community Contributors:**
@@ -286,8 +289,8 @@ Compatible and tested with the newest Twenty v1.11.0 and n8n Version 2.0 Beta (L
 
 **License:** MIT
 
-**Support:** [GitHub Issues](https://github.com/Logrui/n8n-nodes-twenty-dynamic/issues)
+**Support:** [GitHub Issues](https://github.com/xangelix/n8n-nodes-twenty-crm-next/issues)
 
-**Latest Version:** Check [npm](https://www.npmjs.com/package/n8n-nodes-twenty-dynamic) or [GitHub Releases](https://github.com/Logrui/n8n-nodes-twenty-dynamic/releases)
+**Latest Version:** Check [npm](https://www.npmjs.com/package/n8n-nodes-twenty-crm-next) or [GitHub Releases](https://github.com/xangelix/n8n-nodes-twenty-crm-next/releases)
 
 
