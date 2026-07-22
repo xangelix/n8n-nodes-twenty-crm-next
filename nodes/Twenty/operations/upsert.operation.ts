@@ -173,18 +173,33 @@ function extractRecordId(
 
 /**
  * Find a record by searching for a unique field value.
+ * Uses a server-side filter so matching works beyond the first page of records.
  * Returns the record if found, undefined otherwise.
  */
-async function findRecordByField(
+export async function findRecordByField(
 	context: IExecuteFunctions,
 	resource: string,
 	pluralName: string,
 	matchField: string,
 	matchValue: string,
 ): Promise<{ id: string } | undefined> {
-	// Build REST API path
-	const restPath = `/${pluralName}`;
-	
+	// Format the filter value: booleans, numbers and NULL are passed unquoted,
+	// everything else is quoted as a string (with embedded quotes escaped)
+	let formattedValue: string;
+	if (
+		matchValue === 'true' ||
+		matchValue === 'false' ||
+		matchValue === 'NULL' ||
+		(matchValue.trim() !== '' && !Number.isNaN(Number(matchValue)))
+	) {
+		formattedValue = matchValue;
+	} else {
+		formattedValue = `"${matchValue.replace(/"/g, '\\"')}"`;
+	}
+
+	const filter = `${matchField}[eq]:${formattedValue}`;
+	const restPath = `/${pluralName}?limit=1&filter=${encodeURIComponent(filter)}`;
+
 	try {
 		const searchResponse: any = await twentyRestApiRequest.call(
 			context,
@@ -194,22 +209,9 @@ async function findRecordByField(
 
 		// REST API returns data in format: { data: { [resourcePlural]: [...records] } }
 		const records = searchResponse.data?.[pluralName];
-		
-		if (records && Array.isArray(records)) {
-			// Find record where matchField equals matchValue
-			const matchedRecord = records.find((record: any) => {
-				const fieldValue = record[matchField];
-				// Handle different field types
-				if (typeof fieldValue === 'object' && fieldValue !== null) {
-					// For complex types, compare stringified values
-					return JSON.stringify(fieldValue) === JSON.stringify(matchValue);
-				}
-				return fieldValue === matchValue;
-			});
 
-			if (matchedRecord && matchedRecord.id) {
-				return { id: matchedRecord.id };
-			}
+		if (Array.isArray(records) && records.length > 0 && records[0].id) {
+			return { id: records[0].id };
 		}
 	} catch (error) {
 		// Error searching - return undefined (will trigger create)
