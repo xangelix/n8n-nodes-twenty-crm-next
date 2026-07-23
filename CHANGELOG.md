@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.3] - 2026-07-22
+
+### 🐛 Bug Fix - Schema detection via introspection
+
+**Replaced version-guessing metadata queries with schema introspection**
+
+#### Fixed
+- ✅ The metadata objects query is now built from a `__type(name: "Object")` introspection of the connected server, requesting only fields that actually exist (`isCustom`, `applicationId`, `isUIReadOnly`)
+- ✅ `workspaceCustomApplication` availability on the core `Workspace` type is introspected before querying it
+- ✅ Fixes `Cannot query field "isCustom"` errors on Twenty servers whose schema matches neither the legacy nor the 2.12+ shape
+- ✅ Custom-object detection degrades gracefully (instead of crashing) when a server exposes neither mechanism
+
+---
+
 ## [2.1.2] - 2026-07-22
 
 ### 📦 Forked as `n8n-nodes-twenty-crm-next`
