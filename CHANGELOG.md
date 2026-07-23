@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.4] - 2026-07-23
+
+### 🐛 Bug Fix + Improvement - Field type detection and exhaustive type coverage
+
+**Fixed compound field inputs and mapped 100% of Twenty's upstream FieldMetadataType enum (25/25)**
+
+#### Fixed
+- ✅ Compound fields (FullName, Links, Currency, Address) now get their dedicated multi-part inputs in Create/Update/Upsert again
+- ✅ Root cause: the metadata API returns `FieldMetadataType` enum values in SCREAMING_CASE (`LINKS`, `FULL_NAME`, `CURRENCY`, `ADDRESS`) but the type map only contained the GraphQL introspection names (`Links`, `FullName`, ...). Since metadata takes priority in the dual-source merge, compound fields silently degraded to a plain text "Value" input, which Twenty rejects on write
+
+#### Changed
+- ✅ Extracted the field type map into `nodes/Twenty/fieldTypeMap.ts` with an explicit entry for **every** upstream `FieldMetadataType` enum value - nothing falls through to `simple` silently anymore
+- ✅ Composite/read-only types (`ACTOR`, `FILES`, `MORPH_RELATION`, `TS_VECTOR`) no longer render a plain "Value" input that would fail server-side; they are treated like relations (no value input, skipped on write)
+- ✅ Added explicit handling for `NUMERIC`, `RATING`, `POSITION`, `ARRAY`, `RICH_TEXT`
+- ✅ Added GraphQL composite type names `Emails`, `Phones`, `Actor` for the introspection source
+
+#### Added
+- ✅ `pnpm check:types` - verifies the type map against the **live upstream enum** on GitHub (`scripts/check-type-coverage.mjs`). Run it after any Twenty update to catch newly added field types
+
+---
+
 ## [2.1.3] - 2026-07-22
 
 ### 🐛 Bug Fix - Schema detection via introspection
