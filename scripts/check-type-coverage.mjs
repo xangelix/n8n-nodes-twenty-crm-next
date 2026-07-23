@@ -30,7 +30,9 @@ if (upstreamValues.length === 0) {
 	process.exit(1);
 }
 
-const { TWENTY_TYPE_TO_N8N_TYPE } = await import('../dist/nodes/Twenty/fieldTypeMap.js');
+const { TWENTY_TYPE_TO_N8N_TYPE, COMPOUND_MATCH_SUB_FIELDS } = await import(
+	'../dist/nodes/Twenty/fieldTypeMap.js'
+);
 
 const missing = upstreamValues.filter((value) => !(value in TWENTY_TYPE_TO_N8N_TYPE));
 
@@ -44,3 +46,61 @@ if (missing.length > 0) {
 }
 
 console.log('Full type coverage: every upstream FieldMetadataType value is explicitly mapped.');
+
+// ---------------------------------------------------------------------------
+// Part 2: verify compound match sub-fields against upstream composite types
+// ---------------------------------------------------------------------------
+
+const COMPOSITE_TYPE_BASE_URL =
+	'https://raw.githubusercontent.com/twentyhq/twenty/main/packages/twenty-shared/src/types/composite-types';
+
+// n8n input category -> upstream composite type file name
+const CATEGORY_TO_COMPOSITE_FILE = {
+	emails: 'emails',
+	phones: 'phones',
+	link: 'links',
+	fullName: 'full-name',
+	currency: 'currency',
+	address: 'address',
+};
+
+let subFieldFailures = 0;
+
+for (const [category, subFields] of Object.entries(COMPOUND_MATCH_SUB_FIELDS)) {
+	const fileName = CATEGORY_TO_COMPOSITE_FILE[category];
+	if (!fileName) {
+		console.error(`\nNo upstream composite type file mapped for category "${category}"`);
+		subFieldFailures++;
+		continue;
+	}
+
+	const compositeResponse = await fetch(`${COMPOSITE_TYPE_BASE_URL}/${fileName}.composite-type.ts`);
+	if (!compositeResponse.ok) {
+		console.error(`\nFailed to fetch ${fileName}.composite-type.ts: HTTP ${compositeResponse.status}`);
+		subFieldFailures++;
+		continue;
+	}
+	const compositeSource = await compositeResponse.text();
+	const upstreamSubFields = new Set(
+		[...compositeSource.matchAll(/name:\s*'(\w+)'/g)].map((m) => m[1]),
+	);
+
+	for (const { subField } of subFields) {
+		if (!upstreamSubFields.has(subField)) {
+			console.error(`\n"${subField}" not found in upstream ${fileName} composite type`);
+			console.error(`  Upstream provides: ${[...upstreamSubFields].join(', ')}`);
+			subFieldFailures++;
+		}
+	}
+
+	console.log(
+		`Compound "${category}": ${subFields.length} sub-field(s) verified against upstream ${fileName} composite type`,
+	);
+}
+
+if (subFieldFailures > 0) {
+	console.error('\nCompound sub-field verification failed - update COMPOUND_MATCH_SUB_FIELDS in fieldTypeMap.ts');
+	process.exit(1);
+}
+
+console.log('Full compound coverage: every match sub-field exists in the upstream composite definitions.');

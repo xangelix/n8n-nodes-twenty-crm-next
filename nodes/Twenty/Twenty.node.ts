@@ -21,7 +21,7 @@ import {
     getCleanFieldLabel,
 } from './TwentyApi.client';
 import { transformFieldsData, IFieldData } from './FieldTransformation';
-import { mapTwentyTypeToN8nType } from './fieldTypeMap';
+import { mapTwentyTypeToN8nType, COMPOUND_MATCH_SUB_FIELDS } from './fieldTypeMap';
 import {
     executeUpsert,
     executeCreateMany,
@@ -65,6 +65,83 @@ function buildSmartFilter(searchQuery: string, resource: string): string {
 
 	// All other databases: search the 'name' field (simple string)
 	return `name[ilike]:"%${escapedValue}%"`;
+}
+
+/**
+ * Fetches and merges field metadata for a resource using the DUAL-SOURCE architecture.
+ * Combines metadata API (custom fields with detailed options) + GraphQL introspection
+ * (built-in enum fields), deduplicating with metadata taking priority for richer data.
+ *
+ * @param {ILoadOptionsFunctions} context The n8n load-options context.
+ * @param {string} resource The selected database/resource (e.g., 'person').
+ * @returns {Promise<IFieldMetadata[]>} Merged, deduplicated field metadata.
+ */
+async function getMergedResourceFields(
+	context: ILoadOptionsFunctions,
+	resource: string,
+): Promise<IFieldMetadata[]> {
+	// SOURCE 1: Metadata API (custom SELECT fields with rich options)
+	// Use cache for editor UI performance
+	const schema = await getCachedSchema.call(context, false);
+	const objectMeta = schema.objects.find((obj) => obj.nameSingular === resource);
+	const metadataFields: IFieldMetadata[] = objectMeta?.fields || [];
+
+	// SOURCE 2: GraphQL Introspection (ALL fields including built-in enums)
+	const graphqlFields: IFieldMetadata[] = await getDataSchemaForObject.call(context, resource);
+
+	// MERGE: Combine both sources, deduplicating (metadata takes priority for richer data)
+	const fieldMap = new Map<string, IFieldMetadata>();
+
+	// Add GraphQL fields first (base coverage)
+	graphqlFields.forEach((field) => {
+		fieldMap.set(field.name, {
+			...field,
+			source: 'graphql',
+		});
+	});
+
+	// Override with metadata fields (richer data, especially for custom SELECT fields)
+	metadataFields.forEach((field) => {
+		fieldMap.set(field.name, {
+			...field,
+			source: 'metadata',
+		});
+	});
+
+	return Array.from(fieldMap.values());
+}
+
+/**
+ * Maps a GraphQL type name to the n8n field type (for built-in enums).
+ * Plain/composite types delegate to the shared map in fieldTypeMap.ts,
+ * which is kept exhaustive against Twenty's upstream FieldMetadataType enum.
+ *
+ * @param {string} graphqlType The GraphQL type name.
+ * @returns {string} The n8n input category.
+ */
+function mapGraphQLTypeToN8nType(graphqlType: string): string {
+	// Check for LIST types (MULTI_SELECT)
+	if (graphqlType.startsWith('LIST<') && graphqlType.includes('Enum')) {
+		return 'multiSelect';
+	}
+	// Check for single enum types (SELECT)
+	if (graphqlType.includes('Enum')) {
+		return 'select';
+	}
+	// Default mapping
+	return mapTwentyTypeToN8nType(graphqlType);
+}
+
+/**
+ * Maps a merged field to its n8n input category, based on its discovery source.
+ *
+ * @param {IFieldMetadata} field The merged field metadata.
+ * @returns {string} The n8n input category.
+ */
+function getN8nFieldType(field: IFieldMetadata): string {
+	return field.source === 'metadata'
+		? mapTwentyTypeToN8nType(field.type)
+		: mapGraphQLTypeToN8nType(field.type);
 }
 
 export class Twenty implements INodeType {
@@ -482,7 +559,7 @@ export class Twenty implements INodeType {
                 name: 'upsertMatchField',
                 type: 'options',
                 typeOptions: {
-                    loadOptionsMethod: 'getFieldsForResource',
+                    loadOptionsMethod: 'getMatchFieldsForResource',
                 },
                 displayOptions: {
                     show: {
@@ -536,7 +613,7 @@ export class Twenty implements INodeType {
                 name: 'upsertManyMatchField',
                 type: 'options',
                 typeOptions: {
-                    loadOptionsMethod: 'getFieldsForResource',
+                    loadOptionsMethod: 'getMatchFieldsForResource',
                 },
                 displayOptions: {
                     show: {
@@ -1092,36 +1169,7 @@ export class Twenty implements INodeType {
                         // Operation not selected yet, default to showing all fields
                     }
 
-                    // SOURCE 1: Metadata API (custom SELECT fields with rich options)
-                    // Use cache for editor UI performance
-                    const schema = await getCachedSchema.call(this, false);
-                    const objectMeta = schema.objects.find((obj) => obj.nameSingular === resource);
-                    const metadataFields: IFieldMetadata[] = objectMeta?.fields || [];
-
-                    // SOURCE 2: GraphQL Introspection (ALL fields including built-in enums)
-                    const graphqlFields: IFieldMetadata[] = await getDataSchemaForObject.call(this, resource);
-
-                    // MERGE: Combine both sources, deduplicating (metadata takes priority for richer data)
-                    const fieldMap = new Map<string, IFieldMetadata>();
-
-                    // Add GraphQL fields first (base coverage)
-                    graphqlFields.forEach((field) => {
-                        fieldMap.set(field.name, {
-                            ...field,
-                            source: 'graphql',
-                        });
-                    });
-
-                    // Override with metadata fields (richer data, especially for custom SELECT fields)
-                    metadataFields.forEach((field) => {
-                        fieldMap.set(field.name, {
-                            ...field,
-                            source: 'metadata',
-                        });
-                    });
-
-                    // Convert map to array
-                    const allFields = Array.from(fieldMap.values());
+                    const allFields = await getMergedResourceFields(this, resource);
 
                     // Filter fields based on operation and active status
                     const isCreateOrUpdate = operation === 'create' || operation === 'update';
@@ -1138,32 +1186,11 @@ export class Twenty implements INodeType {
                         return true;
                     });
 
-                    // Helper: Map GraphQL type to n8n field type (for built-in enums)
-                    // Plain/composite types delegate to the shared map in fieldTypeMap.ts,
-                    // which is kept exhaustive against Twenty's upstream FieldMetadataType enum
-                    const mapGraphQLTypeToN8nType = (graphqlType: string): string => {
-                        // Check for LIST types (MULTI_SELECT)
-                        if (graphqlType.startsWith('LIST<') && graphqlType.includes('Enum')) {
-                            return 'multiSelect';
-                        }
-                        // Check for single enum types (SELECT)
-                        if (graphqlType.includes('Enum')) {
-                            return 'select';
-                        }
-                        // Default mapping
-                        return mapTwentyTypeToN8nType(graphqlType);
-                    };
-
                     // Transform to dropdown options with pipe-separated values (fieldName|fieldType)
                     const options: INodePropertyOptions[] = filteredFields.map((field) => {
-                        // Determine n8n field type
-                        const n8nType = field.source === 'metadata'
-                            ? mapTwentyTypeToN8nType(field.type)
-                            : mapGraphQLTypeToN8nType(field.type);
-
                         return {
                             name: getCleanFieldLabel(field.label, field.name),  // Clean label without description
-                            value: `${field.name}|${n8nType}`,  // ✅ Pipe-separated for auto-detection
+                            value: `${field.name}|${getN8nFieldType(field)}`,  // ✅ Pipe-separated for auto-detection
                             description: field.type,
                         };
                     });
@@ -1193,6 +1220,65 @@ export class Twenty implements INodeType {
                     return options;
                 } catch (error) {
                     throw new NodeOperationError(this.getNode(), `Failed to load fields for resource: ${error.message}`);
+                }
+            },
+
+            /**
+             * Get matchable fields for the Upsert "Match By Unique Field" dropdowns.
+             * Same dual-source fields as getFieldsForResource, but compound fields are
+             * expanded into their filterable sub-field paths (e.g. Emails becomes
+             * emails.primaryEmail), since Twenty's REST filter matches sub-field paths,
+             * not whole compound objects.
+             */
+            async getMatchFieldsForResource(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+                try {
+                    const resource = this.getCurrentNodeParameter('resource') as string;
+                    if (!resource) {
+                        return [];
+                    }
+
+                    const allFields = await getMergedResourceFields(this, resource);
+
+                    const options: INodePropertyOptions[] = [];
+                    for (const field of allFields) {
+                        if (field.isActive === false) {
+                            continue;
+                        }
+
+                        const label = getCleanFieldLabel(field.label, field.name);
+                        const n8nType = getN8nFieldType(field);
+
+                        // Compound fields: expose the filterable sub-field paths
+                        // (Twenty REST filters match sub-fields, e.g. emails.primaryEmail[eq]:...)
+                        const subFields = COMPOUND_MATCH_SUB_FIELDS[n8nType];
+                        if (subFields) {
+                            for (const { subField, label: subLabel } of subFields) {
+                                options.push({
+                                    name: `${label} › ${subLabel}`,
+                                    value: `${field.name}.${subField}`,
+                                    description: field.type,
+                                });
+                            }
+                            continue;
+                        }
+
+                        // Whole-object relations can't be matched with eq filters
+                        if (n8nType === 'relation') {
+                            continue;
+                        }
+
+                        options.push({
+                            name: label,
+                            value: `${field.name}|${n8nType}`,
+                            description: field.type,
+                        });
+                    }
+
+                    options.sort((a, b) => a.name.localeCompare(b.name));
+
+                    return options;
+                } catch (error) {
+                    throw new NodeOperationError(this.getNode(), `Failed to load match fields for resource: ${error.message}`);
                 }
             },
 

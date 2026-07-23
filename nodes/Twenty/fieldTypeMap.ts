@@ -67,3 +67,36 @@ export const TWENTY_TYPE_TO_N8N_TYPE: Record<string, string> = {
 export function mapTwentyTypeToN8nType(twentyType: string): string {
 	return TWENTY_TYPE_TO_N8N_TYPE[twentyType] || 'simple';
 }
+
+/**
+ * Filterable sub-fields for compound types, used by the Upsert "Match Field"
+ * dropdowns. Twenty's REST filter matches compound sub-field paths
+ * (e.g. `emails.primaryEmail[eq]:"..."`), never whole compound objects.
+ *
+ * SOURCE OF TRUTH: the composite type definitions at
+ * packages/twenty-shared/src/types/composite-types/*.ts and Twenty's REST
+ * filter validation tests in twentyhq/twenty. Keys are n8n input categories
+ * from TWENTY_TYPE_TO_N8N_TYPE. `pnpm check:types` verifies the sub-field
+ * names against the live upstream definitions.
+ */
+export const COMPOUND_MATCH_SUB_FIELDS: Record<string, Array<{ subField: string; label: string }>> = {
+	emails: [{ subField: 'primaryEmail', label: 'Primary Email' }],
+	phones: [{ subField: 'primaryPhoneNumber', label: 'Primary Phone Number' }],
+	link: [{ subField: 'primaryLinkUrl', label: 'Link URL' }],
+	fullName: [
+		{ subField: 'firstName', label: 'First Name' },
+		{ subField: 'lastName', label: 'Last Name' },
+	],
+	currency: [
+		{ subField: 'amountMicros', label: 'Amount (Micros)' },
+		{ subField: 'currencyCode', label: 'Currency Code' },
+	],
+	address: [
+		{ subField: 'addressStreet1', label: 'Street 1' },
+		{ subField: 'addressStreet2', label: 'Street 2' },
+		{ subField: 'addressCity', label: 'City' },
+		{ subField: 'addressPostcode', label: 'Postcode' },
+		{ subField: 'addressState', label: 'State' },
+		{ subField: 'addressCountry', label: 'Country' },
+	],
+};
