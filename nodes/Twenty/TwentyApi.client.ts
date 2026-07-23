@@ -219,56 +219,130 @@ export async function twentyRestApiRequest<T>(
 }
 
 /**
- * GraphQL query for Twenty >= 2.12, where `isCustom` was removed from the
- * metadata Object type. Custom objects are now identified by their
- * `applicationId` matching the workspace's custom application.
+ * Describes which optional fields the server's metadata types expose.
+ * Twenty's metadata schema has changed across versions:
+ * - `isCustom` was removed in favor of `applicationId`-based detection
+ * - `isUIReadOnly` was removed in favor of `isUIEditable`/`isUICreatable`
+ * Introspecting the types first lets a single code path work against every
+ * Twenty version, instead of guessing queries and catching errors.
  */
-const MODERN_OBJECTS_QUERY = `
-	query GetObjects {
-		objects(paging: { first: 200 }) {
-			edges {
-				node {
-					id
-					nameSingular
-					namePlural
-					labelSingular
-					labelPlural
-					applicationId
-					isSystem
-					isActive
-					isRemote
-					isUIReadOnly
-					isSearchable
-					fields(paging: { first: 200 }, filter: {}) {
-						edges {
-							node {
-								id
-								name
-								label
-								type
-								isNullable
-								isUIReadOnly
-								isActive
-								isSystem
-								options
+interface IMetadataTypeCapabilities {
+	hasIsCustom: boolean;
+	hasApplicationId: boolean;
+	objectHasIsUIReadOnly: boolean;
+	fieldHasIsUIReadOnly: boolean;
+	fieldHasIsUIEditable: boolean;
+	fieldHasOptions: boolean;
+}
+
+/**
+ * Introspects the metadata GraphQL `Object` and `Field` types to detect
+ * which optional fields the connected Twenty server actually supports.
+ *
+ * @param {TwentyApiContext} this The context object for the n8n function.
+ * @returns {Promise<IMetadataTypeCapabilities>} Detected field capabilities.
+ */
+async function getMetadataTypeCapabilities(
+	this: TwentyApiContext,
+): Promise<IMetadataTypeCapabilities> {
+	const query = `
+		query IntrospectMetadataTypes {
+			objectType: __type(name: "Object") {
+				fields {
+					name
+				}
+			}
+			fieldType: __type(name: "Field") {
+				fields {
+					name
+				}
+			}
+		}
+	`;
+
+	const response: any = await twentyApiRequest.call(this, 'metadata', query);
+	const objectFieldNames = new Set<string>(
+		(response?.objectType?.fields ?? []).map((field: any) => field.name as string),
+	);
+	const fieldFieldNames = new Set<string>(
+		(response?.fieldType?.fields ?? []).map((field: any) => field.name as string),
+	);
+
+	return {
+		hasIsCustom: objectFieldNames.has('isCustom'),
+		hasApplicationId: objectFieldNames.has('applicationId'),
+		objectHasIsUIReadOnly: objectFieldNames.has('isUIReadOnly'),
+		fieldHasIsUIReadOnly: fieldFieldNames.has('isUIReadOnly'),
+		fieldHasIsUIEditable: fieldFieldNames.has('isUIEditable'),
+		fieldHasOptions: fieldFieldNames.has('options'),
+	};
+}
+
+/**
+ * Builds the objects metadata query, requesting only the optional fields the
+ * connected server actually exposes (see getMetadataTypeCapabilities).
+ *
+ * @param {IMetadataTypeCapabilities} capabilities Detected field capabilities.
+ * @returns {string} The GraphQL query string.
+ */
+function buildObjectsQuery(capabilities: IMetadataTypeCapabilities): string {
+	const objectFlagFields = [
+		capabilities.hasIsCustom ? 'isCustom' : null,
+		capabilities.hasApplicationId ? 'applicationId' : null,
+		'isSystem',
+		'isActive',
+		'isRemote',
+		capabilities.objectHasIsUIReadOnly ? 'isUIReadOnly' : null,
+		'isSearchable',
+	]
+		.filter(Boolean)
+		.join('\n\t\t\t\t\t\t');
+
+	const fieldFlagFields = [
+		'id',
+		'name',
+		'label',
+		'type',
+		'isNullable',
+		capabilities.fieldHasIsUIReadOnly ? 'isUIReadOnly' : null,
+		capabilities.fieldHasIsUIEditable ? 'isUIEditable' : null,
+		'isActive',
+		'isSystem',
+		capabilities.fieldHasOptions ? 'options' : null,
+	]
+		.filter(Boolean)
+		.join('\n\t\t\t\t\t\t\t\t\t');
+
+	return `
+		query GetObjects {
+			objects(paging: { first: 200 }) {
+				edges {
+					node {
+						id
+						nameSingular
+						namePlural
+						labelSingular
+						labelPlural
+						${objectFlagFields}
+						fields(paging: { first: 200 }, filter: {}) {
+							edges {
+								node {
+									${fieldFlagFields}
+								}
 							}
 						}
 					}
 				}
 			}
 		}
-	}
-`;
-
-/**
- * Legacy GraphQL query for Twenty < 2.12, which still exposes `isCustom`
- * on the metadata Object type.
- */
-const LEGACY_OBJECTS_QUERY = MODERN_OBJECTS_QUERY.replace('applicationId', 'isCustom');
+	`;
+}
 
 /**
  * Fetches the ID of the workspace's custom application from the core GraphQL API.
- * Custom objects created via the UI belong to this application (Twenty >= 2.12).
+ * Custom objects created via the UI belong to this application. Returns null
+ * when the server does not expose `workspaceCustomApplication` on the
+ * Workspace type (older Twenty versions).
  *
  * @param {TwentyApiContext} this The context object for the n8n function.
  * @returns {Promise<string | null>} The custom application ID, or null if unavailable.
@@ -276,6 +350,26 @@ const LEGACY_OBJECTS_QUERY = MODERN_OBJECTS_QUERY.replace('applicationId', 'isCu
 async function getWorkspaceCustomApplicationId(
 	this: TwentyApiContext,
 ): Promise<string | null> {
+	// Introspect first: older servers lack workspaceCustomApplication entirely
+	const introspectQuery = `
+		query IntrospectWorkspaceType {
+			__type(name: "Workspace") {
+				fields {
+					name
+				}
+			}
+		}
+	`;
+
+	const workspaceType: any = await twentyApiRequest.call(this, 'graphql', introspectQuery);
+	const workspaceFieldNames = new Set<string>(
+		(workspaceType?.__type?.fields ?? []).map((field: any) => field.name as string),
+	);
+
+	if (!workspaceFieldNames.has('workspaceCustomApplication')) {
+		return null;
+	}
+
 	const query = `
 		query GetWorkspaceCustomApplication {
 			currentWorkspace {
@@ -322,10 +416,14 @@ function parseObjectsResponse(
 				label: fieldEdge.node.label,
 				type: fieldEdge.node.type,
 				isNullable: fieldEdge.node.isNullable,
-				// isWritable is the inverse of isUIReadOnly
-				// If isUIReadOnly is true, field is NOT writable
-				// If isUIReadOnly is false/null/undefined, field IS writable
-				isWritable: fieldEdge.node.isUIReadOnly !== true,
+				// Writability comes from whichever capability flag the server exposes:
+				// older Twenty: isUIReadOnly (true = NOT writable)
+				// newer Twenty: isUIEditable (true = writable)
+				// If neither is present, assume the field is writable
+				isWritable:
+					fieldEdge.node.isUIReadOnly !== undefined
+						? fieldEdge.node.isUIReadOnly !== true
+						: fieldEdge.node.isUIEditable !== false,
 				// Additional field metadata for debugging
 				isActive: fieldEdge.node.isActive,
 				isSystem: fieldEdge.node.isSystem,
@@ -342,10 +440,13 @@ function parseObjectsResponse(
  * Fetches the complete schema metadata from Twenty CRM.
  * Queries the /metadata endpoint to get all objects and their fields.
  *
- * Twenty >= 2.12 removed `isCustom` from the metadata schema, so custom
- * objects are detected by comparing each object's `applicationId` against
- * the workspace's custom application ID. Older servers fall back to the
- * legacy `isCustom` field automatically.
+ * Adapts to the server's schema version via introspection:
+ * - Older Twenty exposes `isCustom` directly on the metadata Object type
+ * - Newer Twenty removed `isCustom`; custom objects are detected by
+ *   matching each object's `applicationId` against the workspace custom
+ *   application ID
+ * - If neither mechanism is available, custom detection degrades to false
+ *   rather than failing the entire schema fetch
  *
  * @param {TwentyApiContext} this The context object for the n8n function.
  * @returns {Promise<IObjectMetadata[]>} Array of object metadata.
@@ -353,28 +454,33 @@ function parseObjectsResponse(
 export async function getSchemaMetadata(
 	this: TwentyApiContext,
 ): Promise<IObjectMetadata[]> {
-	try {
-		const workspaceCustomApplicationId = await getWorkspaceCustomApplicationId.call(this);
-		const response: any = await twentyApiRequest.call(this, 'metadata', MODERN_OBJECTS_QUERY);
+	// Detect which schema variant the connected server speaks
+	const capabilities = await getMetadataTypeCapabilities.call(this);
 
-		return parseObjectsResponse(
-			response,
-			(node) =>
-				workspaceCustomApplicationId !== null &&
-				node.applicationId === workspaceCustomApplicationId,
-		);
-	} catch (error) {
-		// Twenty < 2.12 does not expose `applicationId` on the metadata Object
-		// type nor `workspaceCustomApplication` on Workspace. Fall back to the
-		// legacy `isCustom` field.
-		if (error instanceof Error && error.message.includes('Cannot query field')) {
-			const response: any = await twentyApiRequest.call(this, 'metadata', LEGACY_OBJECTS_QUERY);
-
-			return parseObjectsResponse(response, (node) => node.isCustom === true);
-		}
-
-		throw error;
+	// applicationId-based detection needs the workspace custom application ID
+	let workspaceCustomApplicationId: string | null = null;
+	if (!capabilities.hasIsCustom && capabilities.hasApplicationId) {
+		workspaceCustomApplicationId = await getWorkspaceCustomApplicationId.call(this);
 	}
+
+	const response: any = await twentyApiRequest.call(
+		this,
+		'metadata',
+		buildObjectsQuery(capabilities),
+	);
+
+	return parseObjectsResponse(response, (node) => {
+		// Older Twenty: direct isCustom flag
+		if (capabilities.hasIsCustom) {
+			return node.isCustom === true;
+		}
+		// Newer Twenty: custom objects belong to the workspace custom application
+		if (capabilities.hasApplicationId && workspaceCustomApplicationId !== null) {
+			return node.applicationId === workspaceCustomApplicationId;
+		}
+		// Server exposes neither mechanism - custom detection unavailable
+		return false;
+	});
 }
 
 /**
