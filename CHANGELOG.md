@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.5] - 2026-07-23
+
+### 🐛 Bug Fix - Upsert matching on compound fields
+
+**Match Field dropdown now exposes filterable sub-fields**
+
+#### Fixed
+- ✅ Upsert "Match Field Name or ID" dropdowns (single + many) now expand compound fields into their filterable sub-field paths: `Emails › Primary Email` (`emails.primaryEmail`), `Phones › Primary Phone Number`, `Links › Link URL`, `FullName › First/Last Name`, `Currency › Amount (Micros) / Currency Code`, `Address › Street/City/Postcode/State/Country`
+- ✅ Previously the dropdown offered the compound parent (`emails`), which built an equality filter against the whole compound object and never matched - every upsert created a duplicate
+- ✅ Relation fields are excluded from match dropdowns (whole-object relations can't be matched with `eq` filters; their `<field>Id` FK columns appear as regular fields instead)
+- ✅ Free-typing a field path (e.g. `emails.primaryEmail`) as an expression no longer needed (and was rejected by n8n's options validation)
+- ✅ Sub-field names verified against Twenty's upstream composite type definitions and REST filter validation tests
+
+#### Changed
+- ✅ Extracted shared field-merge and type-mapping helpers (`getMergedResourceFields`, `getN8nFieldType`) used by both field dropdown methods
+- ✅ `pnpm check:types` now also verifies every compound match sub-field against the **live upstream composite type definitions** on GitHub
+
+---
+
 ## [2.1.4] - 2026-07-23
 
 ### 🐛 Bug Fix + Improvement - Field type detection and exhaustive type coverage
