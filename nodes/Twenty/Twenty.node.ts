@@ -21,6 +21,7 @@ import {
     getCleanFieldLabel,
 } from './TwentyApi.client';
 import { transformFieldsData, IFieldData } from './FieldTransformation';
+import { mapTwentyTypeToN8nType } from './fieldTypeMap';
 import {
     executeUpsert,
     executeCreateMany,
@@ -1137,30 +1138,9 @@ export class Twenty implements INodeType {
                         return true;
                     });
 
-                    // Helper: Map Twenty field type to n8n field type
-                    const mapTwentyTypeToN8nType = (twentyType: string): string => {
-                        const typeMap: Record<string, string> = {
-                            'SELECT': 'select',
-                            'MULTI_SELECT': 'multiSelect',
-                            'FullName': 'fullName',
-                            'Links': 'link',
-                            'Currency': 'currency',
-                            'Address': 'address',
-                            'EMAILS': 'emails',
-                            'PHONES': 'phones',
-                            'BOOLEAN': 'boolean',
-                            'TEXT': 'simple',
-                            'NUMBER': 'simple',
-                            'DATE_TIME': 'simple',
-                            'DATE': 'simple',
-                            'UUID': 'simple',
-                            'RAW_JSON': 'simple',
-                            'RELATION': 'relation',
-                        };
-                        return typeMap[twentyType] || 'simple';
-                    };
-
                     // Helper: Map GraphQL type to n8n field type (for built-in enums)
+                    // Plain/composite types delegate to the shared map in fieldTypeMap.ts,
+                    // which is kept exhaustive against Twenty's upstream FieldMetadataType enum
                     const mapGraphQLTypeToN8nType = (graphqlType: string): string => {
                         // Check for LIST types (MULTI_SELECT)
                         if (graphqlType.startsWith('LIST<') && graphqlType.includes('Enum')) {
